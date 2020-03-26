@@ -1,54 +1,60 @@
 package me.cookle.portalCore;
 
-import org.bukkit.Bukkit;
+import me.cookle.portalCore.util.PortalCache;
+import me.cookle.portalCore.util.PortalStore;
+import me.cookle.portalCore.util.YmlStore;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.block.Sign;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.logging.Logger;
 
 public class Main
 extends JavaPlugin {
-    private Plugin plugin;
+    public static @Nullable PortalCache PORTAL_CACHE;
+    public static Plugin plugin;
+    public static Logger LOG;
+    private static PortalStore portalStore;
 
     public void onEnable() {
         plugin = this;
+        LOG = plugin.getLogger();
+        portalStore = new YmlStore(plugin.getDataFolder());
+        this.PORTAL_CACHE = portalStore.loadPortals();
         this.getServer().getPluginManager().registerEvents(new PortalListener(this), plugin);
     }
 
     public void onDisable() {
+        portalStore.savePortals(PORTAL_CACHE);
         plugin.saveConfig();
     }
 
-    @NotNull
-    static Location getLocationFromString(String string) {
-        String[] Cords = string.split(",");
-        int x = Integer.parseInt(Cords[0]);
-        int y = Integer.parseInt(Cords[1]);
-        int z = Integer.parseInt(Cords[2]);
-        World world = Bukkit.getWorld(Cords[3]);
-        return new Location(world, x, y, z);
-    }
-
-    @NotNull
-    static String getStringFromLocation(Location loc) {
-        String cords = "";
-        cords = cords + loc.getBlockX() + ",";
-        cords = cords + loc.getBlockY() + ",";
-        cords = cords + loc.getBlockZ() + ",";
-        cords = cords + Objects.requireNonNull(loc.getWorld()).getName();
-        return cords;
-    }
+//    @NotNull
+//    static Location getLocationFromString(String string) {
+//        String[] Cords = string.split(",");
+//        int x = Integer.parseInt(Cords[0]);
+//        int y = Integer.parseInt(Cords[1]);
+//        int z = Integer.parseInt(Cords[2]);
+//        World world = Bukkit.getWorld(Cords[3]);
+//        return new Location(world, x, y, z);
+//    }
+//
+//    @NotNull
+//    static String getStringFromLocation(Location loc) {
+//        String cords = "";
+//        cords = cords + loc.getBlockX() + ",";
+//        cords = cords + loc.getBlockY() + ",";
+//        cords = cords + loc.getBlockZ() + ",";
+//        cords = cords + Objects.requireNonNull(loc.getWorld()).getName();
+//        return cords;
+//    }
 
     @Nullable
     private static String getBlockData(Block block) {
@@ -74,7 +80,7 @@ extends JavaPlugin {
     }
 
     @Nullable
-    static List<String> getPortalID(Location location) {
+    static String getPortalID(Location location) {
         Location loc = location.clone().subtract(0.0, 1.0, 0.0);
 
         ArrayList<String> ID = new ArrayList<>();
@@ -96,7 +102,7 @@ extends JavaPlugin {
             if (3 <= i & i < 7) { loc.add(0.0, 0.0, 1.0); }
             if (7 <= i & i < 11) { loc.subtract(1.0, 0.0, 0.0); }
             if (!(11 <= i & i < 15)) continue;loc.subtract(0.0, 0.0, 1.0); }
-        if (encountered_block) { return ID; }
+        if (encountered_block) { return ID.toString(); }
         return null;
     }
 }
