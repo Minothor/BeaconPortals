@@ -2,13 +2,9 @@ package me.cookle.portalCore;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Mob;
@@ -16,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
@@ -113,18 +110,21 @@ public class PortalListener implements Listener {
 
         world.playSound(originLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
-        Location playerDestination = player.getLocation();
-        playerDestination.add(locationOffset);
-        player.teleport(playerDestination);
-        world.playSound(destinationLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+            Location playerDestination = player.getLocation();
+            playerDestination.add(locationOffset);
+            player.teleport(playerDestination);
+            world.playSound(playerDestination, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+            world.spawnParticle(Particle.FLASH, playerDestination, 20, 0.2, 1, 0.2);
 
-        leashedEntities.forEach(mob -> {
-            Location mobLocation = mob.getLocation();
-            Location mobDestination = mobLocation.add(locationOffset);
-            mob.teleport(mobDestination);
-            mob.setLeashHolder(player);
-        });
-    }
+            leashedEntities.forEach(mob -> {
+                Location mobLocation = mob.getLocation();
+                Location mobDestination = mobLocation.add(locationOffset);
+                mob.teleport(mobDestination);
+                world.spawnParticle(Particle.FLASH, mobDestination, 20, 0.2, 1, 0.2);
+                mob.setLeashHolder(player);
+            });
+        player.setSneaking(false);
+        }
 
     private void invalidatePortal(String otherID, String reason) {
         plugin.LOG.info(String.format("Portal address invalidated: \n%s\nReason: \n%s", otherID, reason));
