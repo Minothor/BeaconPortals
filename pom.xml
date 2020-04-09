@@ -5,7 +5,7 @@
 
     <artifactId>BeaconPortals</artifactId>
     <groupId>me.cookle.portalCore</groupId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.2-SNAPSHOT</version>
     <modelVersion>4.0.0</modelVersion>
 
     <repositories>
@@ -36,6 +36,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spigot.api.version>1.15</spigot.api.version>
+        <portals.storage.version>2.0</portals.storage.version>
     </properties>
 
     <build>

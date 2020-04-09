@@ -1,0 +1,4 @@
+storage:
+  version: ${portals.storage.version}
+  # YML only for now, maybe MYSQL soon.
+  method: YML

@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class SqlStore implements PortalStore {
 
-    public SqlStore;
+    public SqlStore sqlStore;
 
     @Override
     public @NotNull PortalCache loadPortals() {

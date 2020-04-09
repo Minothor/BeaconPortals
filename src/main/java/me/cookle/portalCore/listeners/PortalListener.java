@@ -1,27 +1,28 @@
-package me.cookle.portalCore;
+package me.cookle.portalCore.listeners;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import me.cookle.portalCore.PortalCore;
 import org.bukkit.*;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
-import static me.cookle.portalCore.Main.PORTAL_CACHE;
+import static me.cookle.portalCore.PortalCore.PORTAL_CACHE;
 
 public class PortalListener implements Listener {
-    private Main plugin;
+    private PortalCore plugin;
 
-    PortalListener(Main main) {
+    public PortalListener(PortalCore main) {
         plugin = main;
     }
 
@@ -38,30 +39,33 @@ public class PortalListener implements Listener {
         if (beacon.getTier() == 0) return;
 
         Location originLocation = block.getLocation();
-        String thisID = Main.getPortalID(originLocation);
+        List<String> thisID = PORTAL_CACHE.getPortalID(originLocation);
         if (thisID == null) return;
 
         World world = player.getWorld();
-        plugin.LOG.info(String.format("thisID: %s",thisID));
-        plugin.LOG.info(String.format("originLocation: %s",originLocation));
+        plugin.LOG.info(String.format("thisID: %s", thisID));
+        plugin.LOG.info(String.format("originLocation: %s", originLocation));
 
         assert PORTAL_CACHE != null;
         if (!PORTAL_CACHE.containsKey(thisID)) {
-            plugin.LOG.info(String.format("Creating Portal with Key: %s",thisID));
+            plugin.LOG.info(String.format("Creating Portal with Key: %s", thisID));
             PORTAL_CACHE.put(thisID, originLocation.clone());
             world.playSound(originLocation, Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
         }
 
-        plugin.LOG.info("Checking for Destination ID...");
+//        plugin.LOG.info("Checking for Destination ID...");
 
         // Check if destination is in portal cache,
         // teleport if present
-        String otherID = null;
+        List<String> otherID = null;
         for (int t = 1; t < 10; t++) {
-            otherID = Main.getPortalID(originLocation.clone().add(0.0, t, 0.0));
-            if (PORTAL_CACHE.containsKey(otherID)){
+            otherID = PORTAL_CACHE.getPortalID(originLocation.clone().add(0.0, t, 0.0));
+            plugin.LOG.info(String.format("Checking Destination ID: %s", otherID));
+            if (PORTAL_CACHE.containsKey(otherID)) {
+                plugin.LOG.info(String.format("Destination ID found: %s", otherID));
                 break;
             }
+            plugin.LOG.info("No Destination ID found!");
             return;
         }
 
@@ -84,20 +88,18 @@ public class PortalListener implements Listener {
             return;
         }
 
-        String destinationID = Main.getPortalID(destinationLocation);
+        List<String> destinationID = PORTAL_CACHE.getPortalID(destinationLocation);
         if (destinationID == null) {
-            invalidatePortal(otherID, String.format("Destination ID was:\n%s\nExpected:\n%s", destinationID,otherID));
+            invalidatePortal(otherID, String.format("Destination ID was:\n%s\nExpected:\n%s", destinationID, otherID));
             world.playSound(originLocation, Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 16, 16);
             return;
         }
 
         if (!destinationID.equals(otherID)) {
-            invalidatePortal(otherID, String.format("Destination ID was:\n%s\nExpected:\n%s", destinationID,otherID));
+            invalidatePortal(otherID, String.format("Destination ID was:\n%s\nExpected:\n%s", destinationID, otherID));
             world.playSound(originLocation, Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 16, 16);
             return;
         }
-
-        Location locationOffset = destinationLocation.clone().subtract(originLocation);
 
         Collection<Mob> leashedEntities = world.getNearbyEntities(
                 BoundingBox.of(
@@ -110,23 +112,26 @@ public class PortalListener implements Listener {
 
         world.playSound(originLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
-            Location playerDestination = player.getLocation();
-            playerDestination.add(locationOffset);
-            player.teleport(playerDestination);
-            world.playSound(playerDestination, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
-            world.spawnParticle(Particle.FLASH, playerDestination, 20, 0.2, 1, 0.2);
+        teleportEntity(originLocation, player, destinationLocation);
+        world.playSound(destinationLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
-            leashedEntities.forEach(mob -> {
-                Location mobLocation = mob.getLocation();
-                Location mobDestination = mobLocation.add(locationOffset);
-                mob.teleport(mobDestination);
-                world.spawnParticle(Particle.FLASH, mobDestination, 20, 0.2, 1, 0.2);
-                mob.setLeashHolder(player);
-            });
+        leashedEntities.forEach(mob -> {
+            teleportEntity(originLocation, mob, destinationLocation);
+            mob.setLeashHolder(player);
+        });
         player.setSneaking(false);
-        }
+    }
 
-    private void invalidatePortal(String otherID, String reason) {
+    private void teleportEntity(Location origin, LivingEntity creature, Location destination) {
+        World destinationWorld = destination.getWorld();
+        Location offset = creature.getLocation().clone().subtract(origin);
+        offset.setWorld(destinationWorld);
+        Location creatureDestination = destination.clone().add(offset);
+        creature.teleport(creatureDestination);
+        destinationWorld.spawnParticle(Particle.FLASH, creatureDestination, 20, 0.2, 1, 0.2);
+    }
+
+    private void invalidatePortal(List<String> otherID, String reason) {
         plugin.LOG.info(String.format("Portal address invalidated: \n%s\nReason: \n%s", otherID, reason));
         PORTAL_CACHE.remove(otherID);
     }
